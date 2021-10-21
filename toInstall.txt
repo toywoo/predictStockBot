@@ -1,0 +1,7 @@
+python3
+python-telegram-bot
+pandas
+bs4
+fbprophet
+requests
+psycopg2

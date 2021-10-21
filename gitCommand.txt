@@ -1,0 +1,7 @@
+git config user.name “Your name”
+git config user.email “Your email address
+git add -A
+
+git commit -m “<메시지>"
+git status
+git push origin main
