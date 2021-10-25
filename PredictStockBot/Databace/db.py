@@ -1,13 +1,18 @@
 import json, psycopg2, os, logging
 import pandas as pd
+import psycopg2.extras
 
 class DB:
-    def __init__(self) -> None:
+    def __init__(self, logger:logging):
+        self.logger = logger
         self.connect = self.connectDB()
+
     def connectDB(self):
         return _connectDB(self)
+
     def insertStockNum(self):
         return _insertStockNum(self)
+        
     def isStockName(self, target):
         return _isStockName(self, target)
 
@@ -18,14 +23,14 @@ def _connectDB(self):
     try:
         connection = psycopg2.connect(port=dbInfo["port"], host=dbInfo["host"], database=dbInfo["database"], user=dbInfo["user"], password=dbInfo["password"])
     except Exception as e:
-        logging.info('postgressql database connection error!')
+        self.logger.info('postgressql database connection error!')
         print(e)
     else:
-        logging.info('postgressql connect db!')
+        self.logger.info('postgressql connect db!')
         return connection
 
 def _insertStockNum(self):
-    stockNumDF = pd.read_excel('stock_num_data.xlsx')
+    stockNumDF = pd.read_excel('PredictStockBot\Databace\stock_num_data.xlsx')
     stock_numData = []
     stock_num_ser = stockNumDF["stock_num"]
     stock_name_ser = stockNumDF["stock_name"]
@@ -43,21 +48,21 @@ def _insertStockNum(self):
         stockInfo.clear() 
         i = i + 1
     try:
-        with self.connect as con:
+        with self.connectDB() as con:
             with con.cursor() as cur:    
                 psycopg2.extras.execute_values(cur, 'INSERT INTO public.stock_num (stock_num, name, market_name) VALUES %s', stock_numData)
     except Exception as e:
         print('insertClass Error: ', e)
     else:
-        logging.info("adding 'stock_num' data in 'stock_num' table")
+        self.logger.info("adding 'stock_num' data in 'stock_num' table")
 
 def _isStockName(self, target):
     try:
-        with self.connect as con:
-            with con.cursor() as cur:    
-                cur.execute('SELECT stock_num FROM public.user where name = %s or stock_num = %s;', (target, target))
-                for row in cur:
-                        return row[0] #e 출력이 어떻게 되는지 확인이 어려움
+        with self.connectDB() as con:
+            with con.cursor() as cur:   
+                cur.execute('SELECT stock_num FROM public.stock_num where name = %s or stock_num = %s;', (target, target))
+                for stockNum in cur:
+                    return stockNum[0]
     except Exception as e:
-        logging.error('insertClass', e)
+        self.logger.info('insertClass' + str(e))
         return False

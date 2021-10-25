@@ -1,4 +1,4 @@
-import telegram
+import telegram, logging
 from telegram.ext import Updater, CommandHandler
 from telegram.ext.callbackcontext import CallbackContext
 from telegram.update import Update
@@ -24,8 +24,17 @@ class Bot:
     def addHandler(self, handler):
         self.updater.dispatcher.add_handler(handler)
 
-    def start(self, update:Update, context:CallbackContext):
-        chat_id = update.callback_query.message.chat.id
-        self.sendMessage(chat_id ,'반갑습니다. 당신의 주가 예측기 입니다.') ##c id 변경
+    def start(self):
         self.updater.start_polling()
         self.updater.idle()
+
+    def makeLogger(self, name=None):
+        logger = logging.getLogger(name)
+        logger.setLevel(logging.INFO)
+        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        console = logging.StreamHandler()
+        console.setLevel(logging.INFO)
+        console.setFormatter(formatter)
+        logger.addHandler(console)
+
+        return logger

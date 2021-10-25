@@ -1,30 +1,38 @@
+import logging
 from bs4 import BeautifulSoup
 from fbprophet import Prophet #linux or macos
 import pandas as pd
-import requests, re
+from psycopg2.extras import LoggingConnection
+import requests, re, logging
 
 
 class PredictionModel:
-    def scraper(stockNum):
-        return _scraper(stockNum)
+    def __init__(self, logger:logging):
+        self.logger = logger
+
+    def scraper(self, stockNum):
+        return _scraper(self, stockNum)
     
-    def predictStock(stockData):
-        return _predictStock(stockData)
+    def predictStock(self, stockData):
+        return _predictStock(self, stockData)
 
 stockInfo={}
 
-def _scraper(stockNum):
+def _scraper(self, stockNum):
     pageNum = 1
     while pageNum < 201: #e 차후 기간을 지정하여 연산을 가능하게 할 예정
-        url = 'https://finance.naver.com/item/sise_day.naver?code='+ stockNum + '&page='+ pageNum
+        url = 'https://finance.naver.com/item/sise_day.naver?code='+ stockNum + '&page='+ str(pageNum)
         with requests.get(url, headers={'User-agent': 'Mozilla/5.0'}) as response:
             if response.status_code == 200:
                 html = response.text
                 soup = BeautifulSoup(html, 'html.parser')
                 parser(soup, pageNum)
+                pageNum = pageNum + 1
             else : 
                 print(response.status_code)
+                logging.info('less 200')
                 return stockInfo
+    self.logger.info('finish scraping stock data of ' + str(stockNum))
     return stockInfo
 
 def parser(originalHTML, pageNum):
@@ -69,7 +77,8 @@ def parser(originalHTML, pageNum):
         stockInfo.get("거래량").append(tradingVolume)
         i = i + 1
 
-def _predictStock(stockData):
+def _predictStock(self, stockData):
+    self.logger.info('start predicting stock price')
     stockDF = pd.DataFrame(stockData)
 
     data_set = {
@@ -83,5 +92,8 @@ def _predictStock(stockData):
     future = model.make_future_dataframe(periods=1, freq='D')
     forecast = model.predict(future)
     fig = model.plot(forecast)
-    forecastPrice = forecast.loc[data.shape[0]]['trend'] #e 다양한 예측 결과 제공
+    print('\n\n\n', forecast.shape[0], data.shape[0], '\n\n\n')
+
+    forecastPrice = forecast.loc[forecast.shape[0]-1]['trend'] #e 다양한 예측 결과 제공
+    self.logger.info('finish predicting stock price')
     return (fig, forecastPrice) 
